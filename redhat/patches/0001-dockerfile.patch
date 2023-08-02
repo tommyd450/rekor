@@ -1,12 +1,13 @@
 diff --git a/Dockerfile b/Dockerfile
-index dbb6575..63c023e 100644
+index 6156068..8b4ca97 100644
 --- a/Dockerfile
 +++ b/Dockerfile
 @@ -13,7 +13,7 @@
  # See the License for the specific language governing permissions and
  # limitations under the License.
 
--FROM registry.access.redhat.com/ubi9/ubi-micro AS builder
+-FROM golang:1.20.6@sha256:010a0ffe47398a3646993df44906c065c526eabf309d01fb0cbc9a5696024a60 AS builder
 +FROM registry.access.redhat.com/ubi9/go-toolset@sha256:52ab391730a63945f61d93e8c913db4cc7a96f200de909cd525e2632055d9fa6 AS builder
  ENV APP_ROOT=/opt/app-root
  ENV GOPATH=$APP_ROOT
+
