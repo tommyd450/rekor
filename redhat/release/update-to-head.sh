@@ -18,8 +18,24 @@
 # to upstream sigstore/rekor, and a remote "origin"
 # pointing to securesign/rekor
 
-# Synchs the release-next branch to main and then triggers CI
-# Usage: update-to-head.sh
+# Synchs the release-next branch to either the upstream `main` branch
+# or a provided git-ref (typically an upstream release tag) and then triggers CI.
+#
+# NOTE: This requires a corresponding midstream branch to exist in the securesign fork
+#       with the same name as the upstream branch/ref, but prefixed with "midstream-".
+#
+# Usage: update-to-head.sh [<git-ref>]
+
+if [ "$#" -ne 1 ]; then
+    upstream_ref="main"
+    midstream_ref="main"
+else
+    upstream_ref=$1
+    midstream_ref="midstream-${upstream_ref}"
+    redhat_ref="redhat-${upstream_ref}"
+fi
+
+echo "Synchronizing release-next to upstream/${upstream_ref}..."
 
 set -e
 REPO_NAME=$(basename $(git rev-parse --show-toplevel))
@@ -31,15 +47,19 @@ OWNERS
 EOT
 )
 redhat_files_msg=":open_file_folder: update Red Hat specific files"
-robot_trigger_msg=":robot: triggering CI on branch 'release-next' after synching from upstream/main"
+robot_trigger_msg=":robot: triggering CI on branch 'release-next' after synching from upstream/${upstream_ref}"
 
-# Reset release-next to upstream/main.
-git fetch upstream main
-git checkout upstream/main -B release-next
+# Reset release-next to upstream main or <git-ref>.
+git fetch upstream $upstream_ref
+if [[ "$upstream_ref" == "main" ]]; then
+  git checkout upstream/main -B release-next
+else
+  git checkout $upstream_ref -B release-next
+fi
 
 # Update redhat's main and take all needed files from there.
-git fetch origin main
-git checkout origin/main $custom_files
+git fetch origin $midstream_ref
+git checkout origin/$midstream_ref $custom_files
 
 # Apply midstream patches
 if [[ -d redhat/patches ]]; then
@@ -50,7 +70,13 @@ git add . # Adds applied patches
 git add $custom_files # Adds custom files
 git commit -m "${redhat_files_msg}"
 
+# Push the release-next branch
 git push -f origin release-next
+
+# Copy and push the release-next branch to $redhat_ref we're not working with main
+if [[ "$redhat_ref" != "" ]]; then
+  git push -f origin release-next:$redhat_ref
+fi
 
 # Trigger CI
 # TODO: Set up openshift or github CI to run on release-next-ci
