@@ -29,13 +29,14 @@
 if [ "$#" -ne 1 ]; then
     upstream_ref="main"
     midstream_ref="main"
+    redhat_ref="release-next"
 else
     upstream_ref=$1
-    midstream_ref="midstream-${upstream_ref}"
-    redhat_ref="redhat-${upstream_ref}"
+    midstream_ref="midstream-${upstream_ref}" # The overlays and patches for the given version
+    redhat_ref="redhat-${upstream_ref}" # The midstream repo with overlays and patches applied
 fi
 
-echo "Synchronizing release-next to upstream/${upstream_ref}..."
+echo "Synchronizing ${redhat_ref} to upstream/${upstream_ref}..."
 
 set -e
 REPO_NAME=$(basename $(git rev-parse --show-toplevel))
@@ -47,14 +48,14 @@ OWNERS
 EOT
 )
 redhat_files_msg=":open_file_folder: update Red Hat specific files"
-robot_trigger_msg=":robot: triggering CI on branch 'release-next' after synching from upstream/${upstream_ref}"
+robot_trigger_msg=":robot: triggering CI on branch '${redhat_ref}' after synching from upstream/${upstream_ref}"
 
 # Reset release-next to upstream main or <git-ref>.
 git fetch upstream $upstream_ref
 if [[ "$upstream_ref" == "main" ]]; then
-  git checkout upstream/main -B release-next
+  git checkout upstream/main -B ${redhat_ref}
 else
-  git checkout $upstream_ref -B release-next
+  git checkout $upstream_ref -B ${redhat_ref}
 fi
 
 # Update redhat's main and take all needed files from there.
@@ -81,27 +82,22 @@ git add $custom_files # Adds custom files
 git commit -m "${redhat_files_msg}"
 
 # Push the release-next branch
-git push -f origin release-next
-
-# Copy and push the release-next branch to $redhat_ref we're not working with main
-if [[ "$redhat_ref" != "" ]]; then
-  git push -f origin release-next:$redhat_ref
-fi
+git push -f origin "${redhat_ref}"
 
 # Trigger CI
 # TODO: Set up openshift or github CI to run on release-next-ci
-git checkout release-next -B release-next-ci
+git checkout "${redhat_ref}" -B "${redhat_ref}"-ci
 date > ci
 git add ci
 git commit -m "${robot_trigger_msg}"
-git push -f origin release-next-ci
+git push -f origin "${redhat_ref}-ci"
 
 if hash hub 2>/dev/null; then
    # Test if there is already a sync PR in
    COUNT=$(hub api -H "Accept: application/vnd.github.v3+json" repos/securesign/${REPO_NAME}/pulls --flat \
     | grep -c "${robot_trigger_msg}") || true
    if [ "$COUNT" = "0" ]; then
-      hub pull-request --no-edit -l "kind/sync-fork-to-upstream" -b securesign/${REPO_NAME}:release-next -h securesign/${REPO_NAME}:release-next-ci -m "${robot_trigger_msg}"
+      hub pull-request --no-edit -l "kind/sync-fork-to-upstream" -b securesign/${REPO_NAME}:${redhat_ref} -h securesign/${REPO_NAME}:${redhat_ref}-ci -m "${robot_trigger_msg}"
    fi
 else
    echo "hub (https://github.com/github/hub) is not installed, so you'll need to create a PR manually."
