@@ -66,6 +66,11 @@ if [[ -d redhat/patches ]]; then
   git apply redhat/patches/*
 fi
 
+# Move .tekton files to root
+if [[ -d redhat/.tekton ]]; then
+  git mv redhat/.tekton .
+fi
+
 git add . # Adds applied patches
 git add $custom_files # Adds custom files
 git commit -m "${redhat_files_msg}"
