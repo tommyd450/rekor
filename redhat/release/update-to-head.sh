@@ -74,7 +74,7 @@ fi
 
 # Move overlays to root
 if [[ -d redhat/overlays ]]; then
-  git mv redhat/overlays .
+  git mv redhat/overlays/* .
 fi
 
 git add . # Adds applied patches
