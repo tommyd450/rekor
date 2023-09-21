@@ -221,7 +221,7 @@ spec:
         - name: name
           value: buildah
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-buildah:0.1@sha256:ebbf3859d0fe10e655dd9df47a1133157d0f2d11ea2faa7d060df0f9268e2a4e
+          value: quay.io/redhat-appstudio-tekton-catalog/task-buildah:0.1@sha256:487b82bbdbd361d6ef3cd7a522bb6fe2f163a2d517181f13fe07565a4838f1bb
         - name: kind
           value: task
         resolver: bundles
@@ -267,7 +267,7 @@ spec:
         - name: name
           value: deprecated-image-check
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-deprecated-image-check:0.2@sha256:58d16de95b4ca597f7f860fb85d6206e549910fa7a8d2a2cc229558f791ad329
+          value: quay.io/redhat-appstudio-tekton-catalog/task-deprecated-image-check:0.3@sha256:2892e53a43f66d0166811defd25f539f804927940df5ad963077027bcdd93ad6
         - name: kind
           value: task
         resolver: bundles
@@ -289,7 +289,7 @@ spec:
         - name: name
           value: clair-scan
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan:0.1@sha256:c5602d9d6dd797da98e98fde8471ea55a788c30f74f2192807910ce5436e9b66
+          value: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan:0.1@sha256:d9ac3dfb3537b6061599337c103f07cd508751f5c5dc24f30632ea25c136aca8
         - name: kind
           value: task
         resolver: bundles
@@ -306,7 +306,7 @@ spec:
         - name: name
           value: sast-snyk-check
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-sast-snyk-check:0.1@sha256:9dcd450b454705b9fe22c5f8f7bb7305cebc3cb73e783b85e047f7e721994189
+          value: quay.io/redhat-appstudio-tekton-catalog/task-sast-snyk-check:0.1@sha256:bce98eea5980ca923b0bb904f6d3fc1499530da054df734d7b78e6e4dc09b082
         - name: kind
           value: task
         resolver: bundles
