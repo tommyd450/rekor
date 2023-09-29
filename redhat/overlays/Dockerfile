@@ -41,6 +41,7 @@ ENTRYPOINT ["rekor-server"]
 
 # debug compile options & debugger
 FROM registry.access.redhat.com/ubi9/go-toolset@sha256:e91cbbd0b659498d029dd43e050c8a009c403146bfba22cbebca8bcd0ee7925f as debug
+COPY --from=deploy /usr/local/bin/rekor-server /usr/local/bin/rekor-server
 RUN go install github.com/go-delve/delve/cmd/dlv@v1.8.0
 
 # overwrite server and include debugger
@@ -54,5 +55,6 @@ LABEL io.k8s.display-name="Rekor-Server container image for Red Hat Trusted Sign
 LABEL io.openshift.tags="rekor-server trusted-signer"
 LABEL summary="Provides the rekor Server binary for running Rekor-Server"
 
+COPY --from=deploy /usr/local/bin/rekor-server /usr/local/bin/rekor-server
 # overwrite server with test build with code coverage
 COPY --from=builder /opt/app-root/src/rekor-server_test /usr/local/bin/rekor-server
