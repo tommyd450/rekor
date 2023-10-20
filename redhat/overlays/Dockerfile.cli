@@ -20,5 +20,4 @@ COPY --from=build-env /opt/app-root/src/rekor-cli-linux-amd64 /usr/local/bin/rek
 COPY --from=build-env /opt/app-root/src/rekor-cli-windows /usr/local/bin/rekor-cli-windows
 WORKDIR /opt/app-root/src/home
 
-#ENTRYPOINT
-ENTRYPOINT [ "rekor-cli" ]
+
