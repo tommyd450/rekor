@@ -30,3 +30,53 @@ jobs:
         if: ${{ env.NUM_OPEN_PRS == 0 }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  check-image-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Retrieve LATEST_SHA
+        run: |
+          LATEST_SHA=$(skopeo inspect --raw docker://registry.access.redhat.com/ubi9/go-toolset:latest | jq -r '.manifests[] | select(.platform.architecture == "amd64") .digest')
+          echo "LATEST_SHA=$LATEST_SHA" >> $GITHUB_ENV
+
+      - name: Retrieve CURRENT_SHA
+        working-directory: redhat/overlays
+        run: |
+          CURRENT_SHA=$(grep FROM Dockerfile | awk '{print $2}' | awk -F '@' '{print $2; exit}')
+          echo "CURRENT_SHA=$CURRENT_SHA" >> $GITHUB_ENV
+
+      - name: Checkout new branch
+        if: ${{ env.LATEST_SHA != env.CURRENT_SHA }}
+        run: |
+          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git config --global user.name "${GITHUB_ACTOR}"
+
+          git fetch origin
+          git checkout -B Update-image-version origin/main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update image version
+        working-directory: redhat/overlays
+        if: ${{ env.LATEST_SHA != env.CURRENT_SHA }}
+        run: |
+          grep -rl $CURRENT_SHA . | xargs sed -i "s/$CURRENT_SHA/$LATEST_SHA/g"
+
+      - name: Check for existing pull request
+        if: ${{ env.LATEST_SHA != env.CURRENT_SHA }}
+        run: |
+          openPRs="$(gh pr list --state open -H Update-image-version --json number | jq -r '.[].number' | wc -l)"
+          echo 'NUM_OPEN_PRS='$openPRs >> $GITHUB_ENV
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create pull request
+        if: ${{ env.NUM_OPEN_PRS == 0 && env.LATEST_SHA != env.CURRENT_SHA }}
+        run: |
+          git add .
+          git commit -m "Update image version in Dockerfile"
+          git push -f origin Update-image-version
+          gh pr create --base main --head Update-image-version --title "Update image image version in Dockerfile" --body "This is an automated pr to update the image versions in the Dockerfiles"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
