@@ -68,6 +68,7 @@ jobs:
         if: ${{ env.NUM_OPEN_PRS == 0 && env.IMAGE_UPDATED == 'true' }}
         run: |
           git push -f origin Update-image-version
-          gh pr create --base main --head Update-image-version --title ":robot: Update image version in Dockerfiles" --body "This is an automated PR, which updates the Dockerfile versions to their latest versions."
+          gh pr create --base main --head Update-image-version --title ":robot: Update image version in Dockerfiles" --body "This is an automated PR, which updates the Dockerfile versions to their latest versions.
+          /cherrypick midstream-v1.2.2"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
