@@ -4,9 +4,7 @@ on:
   schedule:
     # Every M-F at 12:00am run this job
     - cron:  "0 0 * * 1-5"
-env:
-  CURRENT_REDHAT_IMAGE: registry.access.redhat.com/ubi9/go-toolset@sha256:52ab391730a63945f61d93e8c913db4cc7a96f200de909cd525e2632055d9fa6
-
+    
 jobs:
   release-next:
     runs-on: ubuntu-latest
@@ -35,36 +33,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Retrieve LATEST_SHA
-        run: |
-          LATEST_SHA=$(skopeo inspect --raw docker://registry.access.redhat.com/ubi9/go-toolset:latest | jq -r '.manifests[] | select(.platform.architecture == "amd64") .digest')
-          echo "LATEST_SHA=$LATEST_SHA" >> $GITHUB_ENV
-
-      - name: Retrieve CURRENT_SHA
-        working-directory: redhat/overlays
-        run: |
-          CURRENT_SHA=$(grep FROM Dockerfile | awk '{print $2}' | awk -F '@' '{print $2; exit}')
-          echo "CURRENT_SHA=$CURRENT_SHA" >> $GITHUB_ENV
-
-      - name: Checkout new branch
-        if: ${{ env.LATEST_SHA != env.CURRENT_SHA }}
+      
+      - name: Configure git
         run: |
           git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
           git config --global user.name "${GITHUB_ACTOR}"
-
+          
           git fetch origin
           git checkout -B Update-image-version origin/main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update image version
+      - name: Check and update images
         working-directory: redhat/overlays
-        if: ${{ env.LATEST_SHA != env.CURRENT_SHA }}
         run: |
-          grep -rl $CURRENT_SHA . | xargs sed -i "s/$CURRENT_SHA/$LATEST_SHA/g"
+          for image in ubi9/go-toolset ubi9/ubi-minimal; do
+            LATEST_SHA=$(skopeo inspect --raw docker://registry.access.redhat.com/$image:latest | jq -r '.manifests[] | select(.platform.architecture == "amd64") .digest')
+            CURRENT_SHA=$(grep "registry.access.redhat.com/$image@sha256:" Dockerfile*  | awk '{print $2}' | awk -F '@' '{print $2; exit}')
+              if [ "$CURRENT_SHA" != "$LATEST_SHA" ]; then
+                grep -rl "registry.access.redhat.com/$image@$CURRENT_SHA" . | xargs sed -i "s#registry.access.redhat.com/$image@$CURRENT_SHA#registry.access.redhat.com/$image@$LATEST_SHA#g"
+                git add .
+                git commit -m ":robot: Update $image image ref in Dockerfiles from ${CURRENT_SHA:7:11} to ${LATEST_SHA:7:11}"
+                echo "IMAGE_UPDATED=true" >> $GITHUB_ENV
+              fi
+          done
 
       - name: Check for existing pull request
-        if: ${{ env.LATEST_SHA != env.CURRENT_SHA }}
+        if: ${{ env.IMAGE_UPDATED == 'true' }}
         run: |
           openPRs="$(gh pr list --state open -H Update-image-version --json number | jq -r '.[].number' | wc -l)"
           echo 'NUM_OPEN_PRS='$openPRs >> $GITHUB_ENV
@@ -72,11 +65,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create pull request
-        if: ${{ env.NUM_OPEN_PRS == 0 && env.LATEST_SHA != env.CURRENT_SHA }}
+        if: ${{ env.NUM_OPEN_PRS == 0 && env.IMAGE_UPDATED == 'true' }}
         run: |
-          git add .
-          git commit -m "Update image version in Dockerfile"
           git push -f origin Update-image-version
-          gh pr create --base main --head Update-image-version --title "Update image image version in Dockerfile" --body "This is an automated pr to update the image versions in the Dockerfiles"
+          gh pr create --base main --head Update-image-version --title ":robot: Update image version in Dockerfiles" --body "This is an automated PR, which updates the Dockerfile versions to their latest versions."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
