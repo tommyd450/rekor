@@ -30,45 +30,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   check-image-version:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      
-      - name: Configure git
-        run: |
-          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
-          git config --global user.name "${GITHUB_ACTOR}"
-          
-          git fetch origin
-          git checkout -B Update-image-version origin/main
-
-      - name: Check and update images
-        working-directory: redhat/overlays
-        run: |
-          for image in ubi9/go-toolset ubi9/ubi-minimal; do
-            LATEST_SHA=$(skopeo inspect --raw docker://registry.access.redhat.com/$image:latest | jq -r '.manifests[] | select(.platform.architecture == "amd64") .digest')
-            CURRENT_SHA=$(grep "registry.access.redhat.com/$image@sha256:" Dockerfile*  | awk '{print $2}' | awk -F '@' '{print $2; exit}')
-              if [ "$CURRENT_SHA" != "$LATEST_SHA" ]; then
-                grep -rl "registry.access.redhat.com/$image@$CURRENT_SHA" . | xargs sed -i "s#registry.access.redhat.com/$image@$CURRENT_SHA#registry.access.redhat.com/$image@$LATEST_SHA#g"
-                git add .
-                git commit -m ":robot: Update $image image ref in Dockerfiles from ${CURRENT_SHA:7:11} to ${LATEST_SHA:7:11}"
-                echo "IMAGE_UPDATED=true" >> $GITHUB_ENV
-              fi
-          done
-
-      - name: Check for existing pull request
-        if: ${{ env.IMAGE_UPDATED == 'true' }}
-        run: |
-          openPRs="$(gh pr list --state open -H Update-image-version --json number | jq -r '.[].number' | wc -l)"
-          echo 'NUM_OPEN_PRS='$openPRs >> $GITHUB_ENV
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create pull request
-        if: ${{ env.NUM_OPEN_PRS == 0 && env.IMAGE_UPDATED == 'true' }}
-        run: |
-          git push -f origin Update-image-version
-          gh pr create --base main --head Update-image-version --title ":robot: Update image version in Dockerfiles" --body "This is an automated PR, which updates the Dockerfile versions to their latest versions.
-          /cherrypick midstream-v1.2.2"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    uses: securesign/actions/.github/workflows/check-image-version.yaml@main
+    with:
+      mainRef: main
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
