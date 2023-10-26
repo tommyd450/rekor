@@ -31,7 +31,10 @@ jobs:
 
   check-image-version:
     uses: securesign/actions/.github/workflows/check-image-version.yaml@main
+    strategy:
+      matrix:
+        branch: [main, midstream-v1.2.2]
     with:
-      mainRef: main
+      branch: ${{ matrix.branch }}
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
