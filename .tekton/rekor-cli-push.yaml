@@ -8,6 +8,7 @@ metadata:
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-event: '[push]'
     pipelinesascode.tekton.dev/on-target-branch: '[redhat-v1.2.2]'
+    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch == "redhat-v1.2.2" && ( "cmd/rekor-cli/*".pathChanged() || ".tekton/rekor-cli-push.yaml".pathChanged() || "/Dockerfile.cli".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: rhtas-cli-1-0-beta

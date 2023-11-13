@@ -9,6 +9,7 @@ metadata:
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-event: '[pull_request]'
     pipelinesascode.tekton.dev/on-target-branch: '[redhat-v1.2.2]'
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch == "redhat-v1.2.2" && ( "cmd/rekor-server/*".pathChanged() || ".tekton/rekor-server-pull-request.yaml".pathChanged() || "/Dockerfile".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: rhtas-stack-1-0-beta
