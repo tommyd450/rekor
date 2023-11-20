@@ -1,73 +1,56 @@
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/sigstore/rekor/badge)](https://api.securityscorecards.dev/projects/github.com/sigstore/rekor)
+# Red Hat SecureSign Rekor
 
-<p align="center">
-  <img style="max-width: 100%;width: 300px;" src="https://raw.githubusercontent.com/sigstore/community/main/artwork/rekor/horizontal/color/sigstore_rekor-horizontal-color.svg" alt="Rekor logo"/>
-</p>
+This repository holds the Red Hat fork of
+`sigstore/rekor` with modifications needed only for Red Hat.
 
-# Rekor
+## Mirroring upstream
 
-Rekór - Greek for “Record”
+### Mirroring HEAD from upstream `main`
 
-Rekor's goals are to provide an immutable tamper resistant ledger of metadata generated within a software projects supply chain.
-Rekor will enable software maintainers and build systems to record signed metadata to an immutable record.
-Other parties can then query said metadata to enable them to make informed decisions on trust and non-repudiation of an object's lifecycle. For more details visit the [sigstore website](https://sigstore.dev).
+The HEAD of the upstream repo, `sigstore/rekor` is mirrored on the
+`release-next` and `release-next-ci` branches using the [`redhat/release/update-to-head.sh`](redhat/release/update-to-head.sh) script. When this script is run without any arguments, the following steps are taken.
 
-The Rekor project provides a restful API based server for validation and a transparency log for storage.
-A CLI application is available to make and verify entries, query the transparency log for inclusion proof,
-integrity verification of the transparency log or retrieval of entries by either public key or artifact.
+- The upstream HEAD is fetched and checked out as the `release-next` branch
+- The `origin` remote `main` branch is pulled and Red-Hat-specific files from that branch are applied to the `release-next` branch
+- The `release-next` branch is force pushed to the `origin` remote
+- The `release-next` branch is duplicated to `release-next-ci`
+- A timestamp file is added to `release-next-ci` branch
+- The `release-next-ci` branch is force pushed to the `origin` remote
+- A pull request is created (if it does not already exist) for this change, to trigger a CI run
+- OpenShift CI runs the upstream unit and integration tests on the PR
 
-Rekor fulfils the signature transparency role of sigstore's software signing
-infrastructure. However, Rekor can be run on its own and is designed to be
-extensible to working with different manifest schemas and PKI tooling.
+### Mirroring releases from upstream release branches
 
-[Official Documentation](https://docs.sigstore.dev/rekor/overview).
+Branches for specific versions may also be managed using this script by supplying a `git-ref` when running the script.
 
-## Public Instance
+```
+./redhat/release/update-to-head.sh v1.2.2
+```
 
-Rekor is officially Generally Available with a 1.0.0 release, and follows [semver rules](https://semver.org/) for API stability.
-This means production workloads can rely on the Rekor public instance, which has a 24/7 oncall rotation supporting it and offers a 99.5% availability SLO for the following API endpoints:
-* `/api/v1/log`
-* `/api/v1/log/publicKey`
-* `/api/v1/log/proof`
-* `/api/v1/log/entries`
-* `/api/v1/log/entries/retrieve`
+To mirror a release branch from upstream, a branch for our midstream changes must exist. The naming for this branch is in the form `midstream-vX.Y.Z` where `vX.Y.Z` corresponds to an upstream release branch. For example, to mirror, modify and test the upstream version `v1.2.2` from your local laptop, you would take the following steps.
 
-For uptime data on the Rekor public instance, see [https://status.sigstore.dev](https://status.sigstore.dev).
+1. Ensure the patch file from `main` and any other modifications we make in midstream cleanly applies on the upstream release branch. If it doesn't fix that first.
+2. Push a new branch based on our midstream `main` - e.g. `git push origin main:midstream-v1.2.2`
+3. Run `./redhat/release/update-to-head.sh v1.2.2`, providing `v1.2.2` as the upstream branch to mirror.
 
-More details on the public instance can be found at [docs.sigstore.dev](https://docs.sigstore.dev/rekor/public-instance).
+This will create a new "release" branch of the form `redhat-vX.Y.Z`, in this case `redhat-v1.2.2` and a corresponding CI branch for testing, `redhat-v1.2.2-ci`. Then a PR is opened to apply these changes to the midstream release branch, `redhat-v1.2.2`. If OpenShift CI has been configured for this new branch, it will run the unit and integration tests from upstream on the PR.
 
-The attestation size limit for uploads to the public instance is [100KB](https://github.com/sigstore/rekor/blob/18c81d9f4def67c72f630c5406e26d5e568bc83b/cmd/rekor-server/app/root.go#L104). If you need to upload larger files, please run your own instance of Rekor. You can find instructions for doing so in the [installation](https://docs.sigstore.dev/rekor/overview#usage-and-installation) documentation.
+## Local configuration
 
-### Installation
+To use this script locally, you'll need to have two git remotes for this repository.
 
-Please see the [installation](https://docs.sigstore.dev/rekor/overview#usage-and-installation) page for details on how to install the rekor CLI and set up / run
-the rekor server
+- `upstream` pointing to `sigstream/rekor`
+- `origin` pointing to `securesign/rekor` (this repo)
 
-### Usage
-
-For examples of uploading signatures for all the supported types to rekor, see [the types documentation](types.md).
-
-## Extensibility
-
-### Custom schemas / manifests (rekor type)
-
-Rekor allows customized manifests (which term them as types), [type customization is outlined here](https://github.com/sigstore/rekor/tree/main/pkg/types).
-
-### API
-
-If you're interested in integration with Rekor, we have an [OpenAPI swagger editor](https://sigstore.dev/swagger/)
-
-## Security
-
-Should you discover any security issues, please refer to sigstore's [security process](https://github.com/sigstore/.github/blob/main/SECURITY.md)
-
-## Contributions
-
-We welcome contributions from anyone and are especially interested to hear from users of Rekor.
-
-## Additional Documentation
-
-In addition to this README file, this folder contains the additional documentation:
-
-- **oid-info.md**. Rekor OID values.
-- **types.md**. Information about how to sign and upload data in different pluggable types.  
+### Example to mirror the upstream v1.2.2 release and kick off CI
+```
+git clone git@github.com:securesign/rekor.git
+cd rekor
+# Ensure that the patches cleanly apply
+git push origin main:midstream-v1.2.2
+# Add upstream as a remote
+git remote add upstream git@github.com/sigstore/rekor.git
+# Run the update script
+./redhat/release/update-to-head.sh v1.2.2
+```
+This should create the `redhat-v1.2.2` branch as well as a test branch at `redhat-v1.2.2-ci`, create a pull request, and initiate OpenShift CI.
