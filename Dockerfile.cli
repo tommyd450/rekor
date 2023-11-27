@@ -9,6 +9,9 @@ WORKDIR /opt/app-root/src
 RUN git config --global --add safe.directory /opt/app-root/src
 COPY . .
 
+WORKDIR /opt/app-root/src/hack/toolset
+RUN go mod vendor
+
 RUN git stash && \
     export GIT_VERSION=$(git describe --tags --always --dirty) && \
     git stash pop && \
