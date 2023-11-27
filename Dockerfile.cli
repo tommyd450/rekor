@@ -9,7 +9,7 @@ WORKDIR /opt/app-root/src
 RUN git config --global --add safe.directory /opt/app-root/src
 COPY . .
 
-WORKDIR /opt/app-root/src/hack/toolset
+WORKDIR /opt/app-root/src/hack/tools
 RUN go mod vendor
 
 WORKDIR /opt/app-root/src
