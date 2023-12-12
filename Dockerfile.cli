@@ -17,12 +17,14 @@ RUN git stash && \
     git stash pop && \
     go mod vendor && \
     make Makefile.swagger && \
-    make -f Build.mak rekor-cli-darwin-amd64 && \
-    make -f Build.mak rekor-cli-linux-amd64 && \
-    make -f Build.mak rekor-cli-windows && \
+    make -f Build.mak cross-platform && \
     gzip rekor_cli_darwin_amd64 && \
     gzip rekor_cli_linux_amd64 && \
-    gzip rekor_cli_windows_amd64.exe
+    gzip rekor_cli_windows_amd64.exe && \
+    gzip rekor_cli_darwin_arm64 && \
+    gzip rekor_cli_linux_arm64 && \
+    gzip rekor_cli_linux_ppc64le && \
+    gzip rekor_cli_linux_s390x
 
 #Install stage
 FROM registry.access.redhat.com/ubi9/ubi-minimal@sha256:3e313209ac617a92b50350286752311d99ea2dafc429ef0e5311889294b0bc21
@@ -36,6 +38,10 @@ LABEL com.redhat.component="rekor-cli"
 
 COPY --from=build-env /opt/app-root/src/rekor_cli_darwin_amd64.gz /usr/local/bin/rekor_cli_darwin_amd64.gz
 COPY --from=build-env /opt/app-root/src/rekor_cli_linux_amd64.gz /usr/local/bin/rekor_cli_linux_amd64.gz
+COPY --from=build-env /opt/app-root/src/rekor_cli_darwin_arm64.gz /usr/local/bin/rekor_cli_darwin_arm64.gz
+COPY --from=build-env /opt/app-root/src/rekor_cli_linux_arm64.gz /usr/local/bin/rekor_cli_linux_arm64.gz
+COPY --from=build-env /opt/app-root/src/rekor_cli_linux_ppc64le.gz /usr/local/bin/rekor_cli_linux_ppc64le.gz
+COPY --from=build-env /opt/app-root/src/rekor_cli_linux_s390x.gz /usr/local/bin/rekor_cli_linux_s390x.gz
 COPY --from=build-env /opt/app-root/src/rekor_cli_windows_amd64.exe.gz /usr/local/bin/rekor_cli_windows_amd64.exe.gz
 WORKDIR /opt/app-root/src/home
 
