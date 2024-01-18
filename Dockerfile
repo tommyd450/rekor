@@ -50,7 +50,7 @@ RUN curl -LO https://github.com/jedisct1/minisign/releases/download/0.11/minisig
     tar -xzf minisign-0.11-linux.tar.gz minisign-linux/x86_64/minisign -O > /usr/local/bin/minisign && \
     chmod +x /usr/local/bin/minisign && \
     rm minisign-0.11-linux.tar.gz
-#
+
 # Create test directory
 RUN mkdir -p /var/run/attestations && \
     touch /var/run/attestations/attestation.json && \
